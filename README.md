@@ -48,7 +48,7 @@ class BillboardDataCollector:
                             billboard_tracks.append(track_info)
 ```
 
-Come si può vedere dal codice sono stati scelti brani con cadenza bimestrale, questo per rendere il processo di scraping più agevole, essendo già particolarmente lungo.
+Come si può vedere dal codice sono stati scelti brani con cadenza bimestrale, questo per rendere il processo di scraping più agevole, essendo già particolarmente lungo dovuto a rate-limit della piattaforma.
 
 ### Integrazione con AcousticBrainz
 
@@ -145,9 +145,9 @@ def has_all_required_attributes(song):
     return True
 ```
 
-Questa strutturazione dei dati fornisce una base solida per l'analisi successiva attraverso tecniche di machine learning e pattern recognition implementate in PROLOG. 
-
 In particolare sono stati scartati i brani che non hanno tutte le caratteristiche. Molti brani avevano la data di rilascio erratta ed è quindi stata sostituita con quella in ingresso nella classifica Billboard.
+
+Questa strutturazione dei dati fornisce una base solida per l'analisi successiva attraverso tecniche di machine learning e pattern recognition implementate in PROLOG. 
 
 ## Struttura del Database
 
@@ -192,7 +192,8 @@ musical_attributes(Song_ID, Key, Mode, BPM, Danceability, Chord_Change_Rate)
 
 Cattura le caratteristiche tecniche e strutturali della composizione:
 
-- Tonalità (Key) e modo musicale (major/minor)
+- Tonalità (Key) 
+- Modo musicale (major/minor)
 - Tempo in BPM
 - Indice di ballabilità
 - Tasso di cambio degli accordi
@@ -230,7 +231,8 @@ temporal_data(Song_ID, Year, Month, Season, Decade)
 
 Gestisce la dimensione temporale del rilascio:
 
-- Anno e mese di pubblicazione
+- Anno
+- Mese di pubblicazione
 - Stagione di rilascio
 - Decade di appartenenza
 
@@ -257,7 +259,7 @@ La normalizzazione dei dati e l'organizzazione in predicati distinti facilitano 
 
 ## Analisi Statistica Preliminare
 
-Prima di procedere con tecniche di machine learning più avanzate, è stata condotta un'analisi statistica preliminare per comprendere la distribuzione delle caratteristiche musicali e definire range significativi per la successiva classificazione. Questa fase è implementata nel modulo `analisi_statistica.pl`.
+Prima di procedere con tecniche di machine learning più avanzate, è stata condotta un'analisi statistica preliminare per comprendere la distribuzione delle caratteristiche musicali e definire range significativi per la successiva classificazione.
 
 ### Struttura dell'Analisi
 
@@ -354,8 +356,6 @@ Questa analisi preliminare ha fornito informazioni cruciali per:
 3. Comprensione delle distribuzioni per ottimizzare gli algoritmi di classificazione
 4. Validazione della qualità e completezza del dataset
 
-I risultati di questa analisi sono stati fondamentali per la successiva implementazione degli algoritmi di classificazione, fornendo una base solida per la definizione delle categorie e dei criteri di classificazione. Non solo, già con questi risultati si potrebbero ricavare risultati interessanti, verrano discussi nell'apposita sezione.
-
 ## Implementazione degli Algoritmi di Classificazione
 
 Il cuore del progetto consiste nell'implementazione di tre classificatori distinti, ciascuno focalizzato su un aspetto specifico dell'analisi musicale: **decade** di pubblicazione, **stagionalità** e **genere**. L'approccio utilizzato si basa sui principi dell'apprendimento supervisionato, implementando tecniche di induzione di regole in PROLOG.
@@ -368,7 +368,7 @@ Il cuore del progetto consiste nell'implementazione di tre classificatori distin
   - Attributi emotivi (mood classificato in energetic, chill, atmospheric)
   - Attributi temporali (length, decade)
 
-I dati sono stati classsificati come individuato nella fase precedente di analisi statistica:
+I dati sono stati classificati come individuato nella fase precedente di analisi statistica:
 
 ```prolog
 % Value categorization
@@ -428,19 +428,7 @@ find_dominant_category(Energetic, Chill, Atmospheric, energetic) :-
 
 Il sistema verifica quale score predomina sugli altri e supera una soglia di intensità predefinita (0.4), scelta empiricamente per garantire che la categorizzazione avvenga solo in presenza di una chiara predominanza emotiva. Nel caso in cui nessuna categoria soddisfi questi criteri rigidi, il sistema assegna per default la categoria "atmospheric", fornendo così una classificazione sempre deterministica.
 
-Questo approccio permette di catturare efficacemente le sfumature emotive delle canzoni riducendo al contempo la dimensionalità dei dati, un aspetto cruciale per le successive analisi statistiche e di machine learning. La robustezza del sistema è garantita dalla combinazione di normalizzazione, scoring composito e regole di decisione gerarchiche, che insieme forniscono una base solida per l'analisi delle tendenze emotive nella musica popolare.
-
-### Train/Test
-
-- Implementa split training/test set:
-  
-  ```prolog
-  config(train_test_split_ratio, 0.7).
-  ```
-
-- Calcola accuratezza sul test set
-
-- Permette di valutare l'effettiva capacità di generalizzazione del modello
+Questo approccio permette di catturare efficacemente le sfumature emotive delle canzoni riducendo al contempo la dimensionalità dei dati, un aspetto cruciale per le successive analisi statistiche e di machine learning. 
 
 ### Strategia di Apprendimento
 
@@ -505,30 +493,6 @@ punti(Esempi, Classe, AttVal, Punti) :-
 
 - Considera sia precisione (Npos1/N1) che supporto (N1)
 
-### Processo di Apprendimento
-
-```prolog
-learn_rules(Examples, Genre, Rules) :-
- findall(Attr, 
-         (member(e(_, Attrs), Examples), 
-          member(Attr=_, Attrs)), 
-         AllAttrs),
- sort(AllAttrs, UniqueAttributes),
- findall(rule(Cond, Score),
-     (member(Attr, UniqueAttributes),
-      find_best_condition(Examples, Genre, Attr, Cond, Score),
-      config(minimum_score, MinScore),
-      Score > MinScore
-     ),
-     Rules).
-```
-
-- Ricerca le migliori condizioni per ogni attributo
-
-- Filtra in base alla soglia minima di score
-
-- Combina le regole per formare la descrizione della classe 
-
 ### Gestione dell'Incertezza
 
 Il sistema implementa tecniche per gestire l'incertezza nei dati:
@@ -552,8 +516,6 @@ classifica(Oggetto, MigliorClasse) :-
 
 Questo approccio permette di gestire casi incerti attraverso un sistema di voting basato sul numero di regole soddisfatte.
 
-Non vengono considerati gli score perchè il dataset è sbilanciato quindi alcube classi venivano selezionate sempre. In questo modo l'accuratezza del classificatore non è ottimale, ma lo scopo principale è indurre regole e pattern piuttosto che classificare.
-
 L'implementazione complessiva riflette i principi fondamentali dell'apprendimento automatico discussi nel corso, combinando tecniche di induzione di regole con approcci statistici per la gestione dell'incertezza. La struttura modulare permette inoltre di estendere facilmente il sistema con nuove funzionalità o tecniche di classificazione.
 
 Il sistema implementa quindi un approccio di apprendimento supervisionato che cerca di bilanciare:
@@ -574,6 +536,10 @@ Il sistema implementa quindi un approccio di apprendimento supervisionato che ce
 - 2010-2020: durata media intorno ai 210.000 ms (3:30)
 - 2020: il 34.81% dei brani dura tra 2-3 minuti
 
+<div align="center">
+<img widht="500" height="500" src=".github/durata.png">
+</div>
+
 Questo conferma l'ipotesi dell'abbassamento della soglia di attenzione e potrebbe essere influenzato dall'avvento dello streaming e dei social media.
 
 ## Complessità Armonica
@@ -583,6 +549,10 @@ Si nota un'interessante evoluzione nella complessità dei brani (chord change ra
 - Anni '50-'60: media di 0.06-0.07 (cambi di accordi moderati)
 - Anni '90: picco di complessità (0.07 media con più brani oltre 0.11)
 - 2000-2020: tendenza verso maggiore semplicità (oltre il 60% dei brani sotto 0.06)
+
+<div align="center">
+<img widht="500" height="500" src=".github/complex.png">
+</div>
 
 ## BPM e Energia
 
@@ -598,7 +568,7 @@ Il tempo medio è aumentato progressivamente:
 
 Le hit pop mostrano caratteristiche distintive che suggeriscono una formula di successo:
 
-* BPM molto veloci (score 0.214) e durate contenute (score 0.218)
+* Durate contenute (score 0.218)
 * Complessità moderata (score 0.202) che bilancia accessibilità e interesse
 * Mood energetico (score 0.178)
 
@@ -607,7 +577,6 @@ Per un artista pop, questo suggerisce di:
 * Mantenere il brano conciso e dinamico (idealmente 3-3:30 minuti)
 * Puntare su melodie immediate ma con qualche elemento di complessità
 * Creare un sound energico ma non aggressivo
-* Bilanciare elementi dance con strutture pop tradizionali
 * Preferire tonalità maggiori per un appeal più immediato
 
 ### Rock
@@ -615,7 +584,6 @@ Per un artista pop, questo suggerisce di:
 Il rock di successo presenta pattern specifici:
 
 * Durate molto lunghe (score 0.372, il più significativo)
-* BPM sostenuti (score 0.224)
 * Danceability ridotta (score 0.211)
 * Mood più rilassato/contemplativo (score 0.224)
 
@@ -650,7 +618,11 @@ Raccomandazioni per artisti hip hop:
 - La danceability media è aumentata fino agli anni '90 per poi stabilizzarsi
 - I brani elettronici sono progressivamente aumentati (>50% dei brani moderni con valori >0.80)
 
-### Anni '50-'60
+<div align="center">
+<img widht="500" height="500" src=".github/mood.png">
+</div>
+
+### Anni '60
 
 - Alta presenza di mood "chill" e relaxed (>70% sopra 0.7)
 - Bassa aggressività ma alta felicità nei brani
@@ -687,13 +659,13 @@ Le tonalità maggiori sono più diffuse (75.92%) contro le minori (24.08%). La p
 
 ### Tonalità Minori (24.08%)
 
-- Aumento significativo nel tempo (dal 8.33% negli anni '50 al 27.41% nel 2020)
+- Aumento significativo nel tempo
 - A# minor e F minor dominanti nel mood moderno più cupo
 - Riflette la crescente complessità emotiva della musica contemporanea
 
 L'evoluzione delle tonalità mostra:
 
-- Spostamento da tonalità "semplici" (C, G) negli anni '50-'60 verso una maggiore varietà
+- Spostamento da tonalità "semplici" (C, G) negli anni 60 verso una maggiore varietà
 - Aumento delle tonalità minori parallelamente all'evoluzione di generi come hip-hop e EDM
 - Mantenimento di tonalità "cantabili" per facilitare la memorizzazione e il coinvolgimento del pubblico
 
@@ -730,12 +702,7 @@ Basandoci sui pattern più forti emersi dall'analisi, ecco gli "ingredienti" di 
 * Danceability: Media-alta (1.15-1.30)
 * Sound design: Ricco di elementi digitali e synth
 
-### Timing
-
-* Stagione: Estate per brani rilassati, Inverno per hit dance
-* Mood: Adattato alla stagione (energetico in inverno, atmospheric in estate)
-
-### Perché Funziona (In Teoria)
+### Perché Funziona (in Teoria)
 
 1. Soddisfa l'attenzione ridotta dell'era digitale
 2. Mantiene l'energia necessaria per playlist e social
@@ -751,4 +718,4 @@ E se proprio volessimo essere ironici: l'unica vera formula del successo musical
 
 Mentre i dati possono guidarci verso pattern di successo, la musica rimane fondamentalmente un'arte creativa dove l'innovazione e l'autenticità giocano un ruolo tanto importante quanto qualsiasi formula matematica.
 
-"La musica è l'arte di pensare con i suoni" - **Jules Combarieu**
+"*La musica è l'arte di pensare con i suoni*" - **Jules Combarieu**
